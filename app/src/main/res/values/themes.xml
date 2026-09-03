@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.SystemSYNC" parent="Theme.MaterialComponents.Light" />
+</resources>

@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">System SYNC</string>
+    <string name="alias_calculator">Calculator</string>
+    <string name="alias_weather">Weather</string>
+    <string name="alias_compass">Compass</string>
+    <string name="alias_notes">Note Pad</string>
+    <string name="alias_settings">System Settings</string>
+</resources>

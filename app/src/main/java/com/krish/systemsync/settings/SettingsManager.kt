@@ -60,7 +60,7 @@ class SettingsManager(private val context: Context) {
     }
 
     val showWarningScreenFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.SHOW_WARNING_SCREEN] ?: true
+        preferences[PreferencesKeys.SHOW_WARNING_SCREEN] ?: false
     }
 
     val useBiometricFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->

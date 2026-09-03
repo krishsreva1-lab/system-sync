@@ -39,6 +39,7 @@ import com.krish.systemsync.ui.dashboard.DashboardScreen
 import com.krish.systemsync.ui.login.TerminalLoginScreen
 import com.krish.systemsync.ui.player.PlayerScreen
 import com.krish.systemsync.ui.settings.CustomizationScreen
+import com.krish.systemsync.ui.settings.AboutScreen
 import com.krish.systemsync.ui.settings.LogsScreen
 import com.krish.systemsync.ui.setup.*
 import com.krish.systemsync.ui.terminal.TerminalScreen
@@ -141,13 +142,14 @@ class MainActivity : FragmentActivity() {
                 }
 
                 val currentRoute = backStack.lastOrNull()
-                val showBottomBar = currentRoute in listOf(Vault, AppLock, Customization)
+                val showBottomBar = currentRoute in listOf(Vault, AppLock, if (isDummyMode) null else Customization).filterNotNull()
 
                 Scaffold(
                     bottomBar = {
                         if (showBottomBar && lockedAppPackage == null) {
                             CustomBottomNavigation(
                                 currentRoute = (currentRoute as? Screen) ?: Welcome,
+                                isDummyMode = isDummyMode,
                                 onNavigate = { route ->
                                     if (currentRoute == route && route == Vault) {
                                         vaultViewModel.requestReset()
@@ -332,6 +334,12 @@ class MainActivity : FragmentActivity() {
                                             onChangeMainPassword = { backStack.add(MainPasswordSetup) },
                                             onChangeDummyPassword = { backStack.add(DummyPasswordSetup) },
                                             onViewLogs = { backStack.add(Logs) },
+                                            onNavigateToAboutUs = { backStack.add(AboutUs) },
+                                            onBack = { backStack.removeAt(backStack.size - 1) }
+                                        )
+                                    }
+                                    is AboutUs -> NavEntry(key) {
+                                        AboutScreen(
                                             onBack = { backStack.removeAt(backStack.size - 1) }
                                         )
                                     }
@@ -513,6 +521,7 @@ fun AppLockOverlay(
 @Composable
 fun CustomBottomNavigation(
     currentRoute: Screen,
+    isDummyMode: Boolean = false,
     blurLevel: Float = 0f,
     onNavigate: (Screen) -> Unit
 ) {
@@ -545,12 +554,14 @@ fun CustomBottomNavigation(
                 isSelected = currentRoute == AppLock,
                 onClick = { onNavigate(AppLock) }
             )
-            BottomNavItem(
-                icon = Icons.Rounded.Settings,
-                label = "Settings",
-                isSelected = currentRoute == Customization,
-                onClick = { onNavigate(Customization) }
-            )
+            if (!isDummyMode) {
+                BottomNavItem(
+                    icon = Icons.Rounded.Settings,
+                    label = "Settings",
+                    isSelected = currentRoute == Customization,
+                    onClick = { onNavigate(Customization) }
+                )
+            }
         }
     }
 }

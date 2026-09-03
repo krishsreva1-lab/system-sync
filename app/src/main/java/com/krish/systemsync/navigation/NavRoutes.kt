@@ -49,3 +49,6 @@ object Logs : Screen
 
 @Serializable
 object Warning : Screen
+
+@Serializable
+object AboutUs : Screen

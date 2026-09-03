@@ -15,8 +15,8 @@ android {
         applicationId = "com.krish.systemsync"
         minSdk = 28
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.play.services.location)
     implementation(libs.retrofit)
+    implementation(libs.gson)
     testImplementation(libs.androidx.core)
     testImplementation(libs.androidx.junit)
     testImplementation(libs.junit)

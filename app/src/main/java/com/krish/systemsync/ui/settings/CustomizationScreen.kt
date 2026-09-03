@@ -5,6 +5,7 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -53,6 +54,7 @@ fun CustomizationScreen(
     onChangeMainPassword: () -> Unit,
     onChangeDummyPassword: () -> Unit,
     onViewLogs: () -> Unit,
+    onNavigateToAboutUs: () -> Unit,
     onBack: () -> Unit
 ) {
     var hasSaved by remember { mutableStateOf(false) }
@@ -127,7 +129,7 @@ fun CustomizationScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            AppAliasSelector(currentAppAlias, onAppAliasChange)
+            AppAliasDropdownSelector(currentAppAlias, onAppAliasChange)
 
             // Security Section
             SectionTitle("Security Refinement")
@@ -141,9 +143,14 @@ fun CustomizationScreen(
                 onScreenshotProtectionToggle = onScreenshotProtectionToggle,
                 onShowWarningScreenToggle = onShowWarningScreenToggle,
                 onUseBiometricToggle = onUseBiometricToggle,
-                onBiometricFileAccessToggle = onBiometricFileAccessToggle,
-                onChangeMainPassword,
-                onChangeDummyPassword
+                onBiometricFileAccessToggle = onBiometricFileAccessToggle
+            )
+
+            // Password Manager Section
+            SectionTitle("Credentials")
+            PasswordManagerSection(
+                onChangeMainPassword = onChangeMainPassword,
+                onChangeDummyPassword = onChangeDummyPassword
             )
 
             SectionTitle("System Logs")
@@ -162,7 +169,7 @@ fun CustomizationScreen(
             SectionTitle("About & Legal")
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
-                    onClick = { activeDialog = "about" },
+                    onClick = onNavigateToAboutUs,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -275,58 +282,177 @@ fun ThemeModeCard(label: String, icon: ImageVector, selected: Boolean, modifier:
 }
 
 @Composable
-fun AppAliasSelector(currentAlias: AppAlias, onAliasChange: (AppAlias) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AppAlias.values().forEach { alias ->
-            val isSelected = currentAlias == alias
-            Surface(
-                onClick = { onAliasChange(alias) },
-                shape = RoundedCornerShape(16.dp),
-                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+fun AppAliasDropdownSelector(currentAlias: AppAlias, onAliasChange: (AppAlias) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Surface(
+            onClick = { expanded = !expanded },
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (currentAlias == AppAlias.DEFAULT) {
+                        Icon(Icons.Rounded.Shield, contentDescription = null, tint = Color.Black, modifier = Modifier.size(24.dp))
+                    } else {
+                        Icon(painter = androidx.compose.ui.res.painterResource(currentAlias.iconRes), contentDescription = null, tint = Color.Black, modifier = Modifier.size(24.dp))
+                    }
+                }
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = androidx.compose.ui.res.stringResource(currentAlias.labelRes),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text("Tap to choose disguise icon & name", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppAlias.values().forEach { alias ->
+                    val isSelected = currentAlias == alias
+                    Surface(
+                        onClick = { 
+                            onAliasChange(alias)
+                            expanded = false
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.White),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (alias == AppAlias.DEFAULT) {
+                                    Icon(Icons.Rounded.Shield, contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
+                                } else {
+                                    Icon(painter = androidx.compose.ui.res.painterResource(alias.iconRes), contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
+                                }
+                            }
+                            Spacer(Modifier.width(16.dp))
+                            Text(
+                                text = androidx.compose.ui.res.stringResource(alias.labelRes),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (isSelected) {
+                                Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PasswordManagerSection(
+    onChangeMainPassword: () -> Unit,
+    onChangeDummyPassword: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Rounded.Key, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Password Manager", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                    Text("System fingerprint & master passwords", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center
+                    OutlinedButton(
+                        onClick = {
+                            val intent = Intent(Settings.ACTION_SECURITY_SETTINGS)
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        if (alias == AppAlias.DEFAULT) {
-                            Icon(
-                                Icons.Rounded.Shield,
-                                contentDescription = null,
-                                tint = Color.Black,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        } else {
-                            Icon(
-                                painter = androidx.compose.ui.res.painterResource(alias.iconRes),
-                                contentDescription = null,
-                                tint = Color.Black,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
+                        Icon(Icons.Rounded.Fingerprint, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Setup System Fingerprint")
                     }
-                    Spacer(Modifier.width(16.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = androidx.compose.ui.res.stringResource(alias.labelRes),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        if (alias == AppAlias.DEFAULT) {
-                            Text("Original look", style = MaterialTheme.typography.labelSmall)
-                        }
+
+                    OutlinedButton(
+                        onClick = onChangeMainPassword,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.Lock, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Change Main Password")
                     }
-                    if (isSelected) {
-                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+
+                    OutlinedButton(
+                        onClick = onChangeDummyPassword,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.LockOpen, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Change Dummy Password")
                     }
                 }
             }
@@ -345,11 +471,8 @@ fun SecuritySettings(
     onScreenshotProtectionToggle: (Boolean) -> Unit,
     onShowWarningScreenToggle: (Boolean) -> Unit,
     onUseBiometricToggle: (Boolean) -> Unit,
-    onBiometricFileAccessToggle: (Boolean) -> Unit,
-    onChangeMainPassword: () -> Unit,
-    onChangeDummyPassword: () -> Unit
+    onBiometricFileAccessToggle: (Boolean) -> Unit
 ) {
-    val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SettingsToggle(
             title = "Shake to Lock",
@@ -386,41 +509,6 @@ fun SecuritySettings(
             onCheckedChange = onBiometricFileAccessToggle,
             icon = Icons.Rounded.LockPerson
         )
-
-        Spacer(Modifier.height(8.dp))
-
-        OutlinedButton(
-            onClick = {
-                val intent = Intent(Settings.ACTION_SECURITY_SETTINGS)
-                context.startActivity(intent)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Icon(Icons.Rounded.Fingerprint, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Setup System Fingerprint")
-        }
-
-        OutlinedButton(
-            onClick = onChangeMainPassword,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Icon(Icons.Rounded.Lock, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Change Main Password")
-        }
-
-        OutlinedButton(
-            onClick = onChangeDummyPassword,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Icon(Icons.Rounded.LockOpen, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Change Dummy Password")
-        }
     }
 }
 
@@ -442,7 +530,7 @@ fun SettingsToggle(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.Bold)
             Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -460,7 +548,7 @@ fun CustomizationPreview() {
             currentAppAlias = AppAlias.DEFAULT,
             shakeToLock = true,
             screenshotProtection = true,
-            showWarningScreen = true,
+            showWarningScreen = false,
             useBiometric = false,
             biometricFileAccess = false,
             onThemeModeChange = {},
@@ -473,6 +561,7 @@ fun CustomizationPreview() {
             onChangeMainPassword = {},
             onChangeDummyPassword = {},
             onViewLogs = {},
+            onNavigateToAboutUs = {},
             onBack = {}
         )
     }

@@ -25,7 +25,7 @@ data class GithubAsset(
 
 object UpdateManager {
     private const val GITHUB_API_URL = "https://api.github.com/repos/krishsreva1-lab/system-sync/releases/latest"
-    private const val CURRENT_VERSION = "1.3"
+    private const val CURRENT_VERSION = "1.4"
 
     suspend fun checkForUpdate(): GithubRelease? = withContext(Dispatchers.IO) {
         runCatching {

@@ -33,7 +33,7 @@ fun UpdateScreen(
 
     LaunchedEffect(Unit) {
         isLoading = true
-        release = UpdateManager.checkForUpdate()
+        release = UpdateManager.checkForUpdate(context)
         isLoading = false
     }
 
@@ -100,7 +100,7 @@ fun UpdateScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "You are running the latest version of System SYNC (v1.3).",
+                            text = "You are running the latest version of System SYNC (v${UpdateManager.getCurrentVersion(context)}).",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center

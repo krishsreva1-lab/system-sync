@@ -25,9 +25,17 @@ data class GithubAsset(
 
 object UpdateManager {
     private const val GITHUB_API_URL = "https://api.github.com/repos/krishsreva1-lab/system-sync/releases/latest"
-    private const val CURRENT_VERSION = "1.4"
 
-    suspend fun checkForUpdate(): GithubRelease? = withContext(Dispatchers.IO) {
+    fun getCurrentVersion(context: Context): String {
+        return try {
+            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            pInfo.versionName ?: "1.0"
+        } catch (e: Exception) {
+            "1.0"
+        }
+    }
+
+    suspend fun checkForUpdate(context: Context): GithubRelease? = withContext(Dispatchers.IO) {
         runCatching {
             val client = OkHttpClient()
             val request = Request.Builder()
@@ -41,7 +49,9 @@ object UpdateManager {
                 val release = Gson().fromJson(bodyString, GithubRelease::class.java)
                 
                 val remoteVersion = release.tagName.removePrefix("v").trim()
-                if (remoteVersion > CURRENT_VERSION) {
+                val localVersion = getCurrentVersion(context).trim()
+
+                if (remoteVersion > localVersion) {
                     release
                 } else {
                     null

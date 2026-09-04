@@ -93,6 +93,7 @@ class MainActivity : FragmentActivity() {
             val showWarningScreen by viewModel.showWarningScreen.collectAsState()
             val useBiometric by viewModel.useBiometric.collectAsState()
             val biometricFileAccess by viewModel.biometricFileAccess.collectAsState()
+            val autoCheckUpdates by viewModel.autoCheckUpdates.collectAsState()
             val activeAlias by viewModel.activeAlias.collectAsState()
             val lockedAppPackage by viewModel.lockedAppPackage.collectAsState()
 
@@ -327,6 +328,7 @@ class MainActivity : FragmentActivity() {
                                             showWarningScreen = showWarningScreen,
                                             useBiometric = useBiometric,
                                             biometricFileAccess = biometricFileAccess,
+                                            autoCheckUpdates = autoCheckUpdates,
                                             onThemeModeChange = { viewModel.setThemeMode(it) },
                                             onAppAliasChange = { viewModel.updateActiveAlias(it) },
                                             onShakeToLockToggle = { viewModel.setShakeToLock(it) },
@@ -334,6 +336,7 @@ class MainActivity : FragmentActivity() {
                                             onShowWarningScreenToggle = { viewModel.setShowWarningScreen(it) },
                                             onUseBiometricToggle = { viewModel.setUseBiometric(it) },
                                             onBiometricFileAccessToggle = { viewModel.setBiometricFileAccess(it) },
+                                            onAutoCheckUpdatesToggle = { viewModel.setAutoCheckUpdates(it) },
                                             onChangeMainPassword = { backStack.add(MainPasswordSetup) },
                                             onChangeDummyPassword = { backStack.add(DummyPasswordSetup) },
                                             onViewLogs = { backStack.add(Logs) },

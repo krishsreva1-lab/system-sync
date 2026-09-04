@@ -39,6 +39,9 @@ import com.krish.systemsync.vault.VaultEvent
 import com.krish.systemsync.vault.VaultFile
 import com.krish.systemsync.vault.VaultViewModel
 import com.krish.systemsync.ui.components.GlassSurface
+import com.krish.systemsync.settings.GithubRelease
+import com.krish.systemsync.settings.UpdateCheckResult
+import com.krish.systemsync.settings.UpdateManager
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -47,6 +50,7 @@ import java.io.File
 fun VaultScreen(
     viewModel: VaultViewModel,
     biometricFileAccess: Boolean = false,
+    autoCheckUpdates: Boolean = true,
     onVerifyBiometric: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit = { success, _ -> success() },
     onNavigateToNotes: () -> Unit,
     onNavigateToTrash: () -> Unit,
@@ -62,6 +66,22 @@ fun VaultScreen(
     
     LaunchedEffect(resetTrigger) {
         selectedCategory = null
+    }
+
+    // Auto-check for updates on Vault screen entry if enabled
+    var autoUpdateRelease by remember { mutableStateOf<GithubRelease?>(null) }
+    var showAutoUpdateDialog by remember { mutableStateOf(false) }
+    var isDownloadingAuto by remember { mutableStateOf(false) }
+    var autoDownloadProgress by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        if (autoCheckUpdates) {
+            val result = UpdateManager.checkForUpdate(context)
+            if (result is UpdateCheckResult.UpdateAvailable) {
+                autoUpdateRelease = result.release
+                showAutoUpdateDialog = true
+            }
+        }
     }
     
     val snackbarHostState = remember { SnackbarHostState() }
@@ -174,6 +194,63 @@ fun VaultScreen(
                     onFileLongClick = { fileForMenu = it }
                 )
             }
+        }
+
+        if (showAutoUpdateDialog && autoUpdateRelease != null) {
+            val release = autoUpdateRelease!!
+            AlertDialog(
+                onDismissRequest = { if (!isDownloadingAuto) showAutoUpdateDialog = false },
+                title = { Text("New Version Available (${release.tagName})", fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(release.releaseNotes ?: "A new version of System SYNC is ready to download.")
+                        if (isDownloadingAuto) {
+                            Spacer(Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                progress = { autoDownloadProgress },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text("Downloading... ${(autoDownloadProgress * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val apkAsset = release.assets.find { it.name.endsWith(".apk", ignoreCase = true) }
+                                ?: release.assets.firstOrNull()
+
+                            if (apkAsset != null) {
+                                isDownloadingAuto = true
+                                scope.launch {
+                                    val installed = UpdateManager.downloadAndInstallApk(context, apkAsset.downloadUrl) { progress ->
+                                        autoDownloadProgress = progress
+                                    }
+                                    isDownloadingAuto = false
+                                    if (!installed) {
+                                        snackbarHostState.showSnackbar("Download failed.")
+                                    } else {
+                                        showAutoUpdateDialog = false
+                                    }
+                                }
+                            } else {
+                                scope.launch { snackbarHostState.showSnackbar("No APK file found in release.") }
+                            }
+                        },
+                        enabled = !isDownloadingAuto
+                    ) {
+                        Text(if (isDownloadingAuto) "Downloading..." else "Download")
+                    }
+                },
+                dismissButton = {
+                    if (!isDownloadingAuto) {
+                        TextButton(onClick = { showAutoUpdateDialog = false }) {
+                            Text("Later")
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(24.dp)
+            )
         }
 
         if (showImportOptions) {

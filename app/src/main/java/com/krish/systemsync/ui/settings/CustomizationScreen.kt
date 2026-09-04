@@ -44,6 +44,7 @@ fun CustomizationScreen(
     showWarningScreen: Boolean,
     useBiometric: Boolean,
     biometricFileAccess: Boolean,
+    autoCheckUpdates: Boolean,
     onThemeModeChange: (ThemeMode) -> Unit,
     onAppAliasChange: (AppAlias) -> Unit,
     onShakeToLockToggle: (Boolean) -> Unit,
@@ -51,6 +52,7 @@ fun CustomizationScreen(
     onShowWarningScreenToggle: (Boolean) -> Unit,
     onUseBiometricToggle: (Boolean) -> Unit,
     onBiometricFileAccessToggle: (Boolean) -> Unit,
+    onAutoCheckUpdatesToggle: (Boolean) -> Unit,
     onChangeMainPassword: () -> Unit,
     onChangeDummyPassword: () -> Unit,
     onViewLogs: () -> Unit,
@@ -71,6 +73,7 @@ fun CustomizationScreen(
                 onShowWarningScreenToggle(showWarningScreen)
                 onUseBiometricToggle(useBiometric)
                 onBiometricFileAccessToggle(biometricFileAccess)
+                onAutoCheckUpdatesToggle(autoCheckUpdates)
             }
         }
     }
@@ -79,6 +82,7 @@ fun CustomizationScreen(
         onBack()
     }
 
+    var draftAutoCheckUpdates by remember(autoCheckUpdates) { mutableStateOf(autoCheckUpdates) }
     var activeDialog by remember { mutableStateOf<String?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -97,6 +101,7 @@ fun CustomizationScreen(
                 actions = {
                     TextButton(onClick = {
                         hasSaved = true
+                        onAutoCheckUpdatesToggle(draftAutoCheckUpdates)
                         scope.launch {
                             snackbarHostState.showSnackbar("Settings Saved Successfully")
                         }
@@ -156,6 +161,13 @@ fun CustomizationScreen(
 
             SectionTitle("System Logs & Updates")
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SettingsToggle(
+                    title = "Automatic check for updates",
+                    subtitle = "Check for new updates automatically",
+                    checked = draftAutoCheckUpdates,
+                    onCheckedChange = { draftAutoCheckUpdates = it },
+                    icon = Icons.Rounded.SystemUpdate
+                )
                 Button(
                     onClick = onViewLogs,
                     modifier = Modifier.fillMaxWidth(),
@@ -563,6 +575,7 @@ fun CustomizationPreview() {
             showWarningScreen = false,
             useBiometric = false,
             biometricFileAccess = false,
+            autoCheckUpdates = true,
             onThemeModeChange = {},
             onAppAliasChange = {},
             onShakeToLockToggle = {},
@@ -570,6 +583,7 @@ fun CustomizationPreview() {
             onShowWarningScreenToggle = {},
             onUseBiometricToggle = {},
             onBiometricFileAccessToggle = {},
+            onAutoCheckUpdatesToggle = {},
             onChangeMainPassword = {},
             onChangeDummyPassword = {},
             onViewLogs = {},

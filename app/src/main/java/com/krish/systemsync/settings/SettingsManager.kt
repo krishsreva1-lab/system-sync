@@ -33,6 +33,7 @@ class SettingsManager(private val context: Context) {
         val USE_BIOMETRIC = booleanPreferencesKey("use_biometric")
         val BIOMETRIC_FILE_ACCESS = booleanPreferencesKey("biometric_file_access")
         val CLEAR_CLIPBOARD_TIMEOUT = intPreferencesKey("clear_clipboard_timeout")
+        val AUTO_CHECK_UPDATES = booleanPreferencesKey("auto_check_updates")
         val ACTIVE_ALIAS = stringPreferencesKey("active_alias")
     }
 
@@ -75,6 +76,10 @@ class SettingsManager(private val context: Context) {
 
     val biometricFileAccessFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[PreferencesKeys.BIOMETRIC_FILE_ACCESS] ?: false
+    }
+
+    val autoCheckUpdatesFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.AUTO_CHECK_UPDATES] ?: true // default true
     }
 
     val clearClipboardTimeoutFlow: Flow<Int> = context.dataStore.data.map { preferences ->
@@ -141,6 +146,12 @@ class SettingsManager(private val context: Context) {
     suspend fun setBiometricFileAccess(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BIOMETRIC_FILE_ACCESS] = enabled
+        }
+    }
+
+    suspend fun setAutoCheckUpdates(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_CHECK_UPDATES] = enabled
         }
     }
 

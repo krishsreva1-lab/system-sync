@@ -52,6 +52,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val showWarningScreen = settingsManager.showWarningScreenFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val useBiometric = settingsManager.useBiometricFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val biometricFileAccess = settingsManager.biometricFileAccessFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val autoCheckUpdates = settingsManager.autoCheckUpdatesFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val activeAlias = settingsManager.activeAliasFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "com.krish.systemsync.LauncherDefault")
 
     suspend fun authenticate(password: String): Boolean {
@@ -107,6 +108,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setShowWarningScreen(enabled: Boolean) = viewModelScope.launch { settingsManager.setShowWarningScreen(enabled) }
     fun setUseBiometric(enabled: Boolean) = viewModelScope.launch { settingsManager.setUseBiometric(enabled) }
     fun setBiometricFileAccess(enabled: Boolean) = viewModelScope.launch { settingsManager.setBiometricFileAccess(enabled) }
+    fun setAutoCheckUpdates(enabled: Boolean) = viewModelScope.launch { settingsManager.setAutoCheckUpdates(enabled) }
 
     fun updateActiveAlias(newAlias: AppAlias) {
         viewModelScope.launch {

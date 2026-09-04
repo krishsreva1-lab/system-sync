@@ -29,6 +29,7 @@ class SettingsManager(private val context: Context) {
         val SHAKE_TO_LOCK = booleanPreferencesKey("shake_to_lock")
         val SCREENSHOT_PROTECTION = booleanPreferencesKey("screenshot_protection")
         val SHOW_WARNING_SCREEN = booleanPreferencesKey("show_warning_screen")
+        val WARNING_RESET_V1_3_2 = booleanPreferencesKey("warning_reset_v1_3_2")
         val USE_BIOMETRIC = booleanPreferencesKey("use_biometric")
         val BIOMETRIC_FILE_ACCESS = booleanPreferencesKey("biometric_file_access")
         val CLEAR_CLIPBOARD_TIMEOUT = intPreferencesKey("clear_clipboard_timeout")
@@ -60,7 +61,12 @@ class SettingsManager(private val context: Context) {
     }
 
     val showWarningScreenFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.SHOW_WARNING_SCREEN] ?: false
+        val isMigrated = preferences[PreferencesKeys.WARNING_RESET_V1_3_2] ?: false
+        if (!isMigrated) {
+            false
+        } else {
+            preferences[PreferencesKeys.SHOW_WARNING_SCREEN] ?: false
+        }
     }
 
     val useBiometricFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
@@ -121,6 +127,7 @@ class SettingsManager(private val context: Context) {
 
     suspend fun setShowWarningScreen(enabled: Boolean) {
         context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.WARNING_RESET_V1_3_2] = true
             preferences[PreferencesKeys.SHOW_WARNING_SCREEN] = enabled
         }
     }

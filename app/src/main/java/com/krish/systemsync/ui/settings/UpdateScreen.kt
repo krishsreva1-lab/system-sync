@@ -3,7 +3,7 @@ package com.krish.systemsync.ui.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.*
@@ -44,7 +44,7 @@ fun UpdateScreen(
                 title = { Text("Check for Updates", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -142,7 +142,7 @@ fun UpdateScreen(
                                 }
                             }
 
-                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
                             Text(
                                 text = "What's Changed:",

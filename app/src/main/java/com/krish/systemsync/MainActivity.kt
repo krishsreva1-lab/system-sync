@@ -2,6 +2,8 @@ package com.krish.systemsync
 
 import android.os.Bundle
 import android.view.WindowManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -96,6 +98,16 @@ class MainActivity : FragmentActivity() {
             val autoCheckUpdates by viewModel.autoCheckUpdates.collectAsState()
             val activeAlias by viewModel.activeAlias.collectAsState()
             val lockedAppPackage by viewModel.lockedAppPackage.collectAsState()
+
+            val permissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { _ -> }
+
+            LaunchedEffect(Unit) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
 
             // Screenshot Protection
             LaunchedEffect(screenshotProtection) {

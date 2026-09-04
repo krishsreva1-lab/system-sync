@@ -2,6 +2,7 @@ package com.krish.systemsync.settings
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.content.FileProvider
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
@@ -35,6 +36,20 @@ object UpdateManager {
         }
     }
 
+    private fun isVersionGreater(remote: String, local: String): Boolean {
+        val rParts = remote.removePrefix("v").trim().split(".").map { it.toIntOrNull() ?: 0 }
+        val lParts = local.removePrefix("v").trim().split(".").map { it.toIntOrNull() ?: 0 }
+        
+        val maxLen = maxOf(rParts.size, lParts.size)
+        for (i in 0 until maxLen) {
+            val r = rParts.getOrNull(i) ?: 0
+            val l = lParts.getOrNull(i) ?: 0
+            if (r > l) return true
+            if (r < l) return false
+        }
+        return false
+    }
+
     suspend fun checkForUpdate(context: Context): GithubRelease? = withContext(Dispatchers.IO) {
         runCatching {
             val client = OkHttpClient()
@@ -44,14 +59,21 @@ object UpdateManager {
                 .build()
 
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@runCatching null
+                Log.d("UpdateManager", "GitHub API response code: ${response.code}")
+                if (!response.isSuccessful) {
+                    Log.e("UpdateManager", "GitHub API failed with code: ${response.code}")
+                    return@runCatching null
+                }
                 val bodyString = response.body?.string() ?: return@runCatching null
+                Log.d("UpdateManager", "GitHub API body: $bodyString")
                 val release = Gson().fromJson(bodyString, GithubRelease::class.java)
                 
-                val remoteVersion = release.tagName.removePrefix("v").trim()
-                val localVersion = getCurrentVersion(context).trim()
+                val remoteVersion = release.tagName
+                val localVersion = getCurrentVersion(context)
 
-                if (remoteVersion > localVersion) {
+                Log.d("UpdateManager", "Remote version: $remoteVersion, Local version: $localVersion")
+
+                if (isVersionGreater(remoteVersion, localVersion)) {
                     release
                 } else {
                     null

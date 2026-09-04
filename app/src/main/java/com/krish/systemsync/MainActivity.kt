@@ -77,9 +77,11 @@ class MainActivity : FragmentActivity() {
             viewModel.setLockedApp(lockPackage)
         }
 
-        // Start App Lock Service
-        val intent = android.content.Intent(this, com.krish.systemsync.applock.AppLockService::class.java)
-        startForegroundService(intent)
+        // Start App Lock Service safely as a regular background service
+        try {
+            val intent = android.content.Intent(this, com.krish.systemsync.applock.AppLockService::class.java)
+            startService(intent)
+        } catch (_: Exception) {}
 
         setContent {
             val themeMode by viewModel.themeMode.collectAsState()

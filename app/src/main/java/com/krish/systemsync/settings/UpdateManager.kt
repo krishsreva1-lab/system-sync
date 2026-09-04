@@ -56,6 +56,7 @@ object UpdateManager {
             val request = Request.Builder()
                 .url(GITHUB_API_URL)
                 .addHeader("Accept", "application/vnd.github.v3+json")
+                .addHeader("User-Agent", "SystemSYNC-Android-App") // Mandatory for GitHub API
                 .build()
 
             client.newCall(request).execute().use { response ->

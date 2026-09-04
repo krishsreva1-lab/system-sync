@@ -17,10 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.gson.Gson
+import com.krish.systemsync.settings.GithubRelease
+import com.krish.systemsync.settings.UpdateManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -41,11 +46,21 @@ data class FeedbackPayload(
 fun AboutScreen(
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("Feedback") } // "Bug", "Feedback", "New Feature"
+    var selectedCategory by remember { mutableStateOf("Feedback") }
     var isSubmitting by remember { mutableStateOf(false) }
+
+    // Update checker states
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var availableUpdate by remember { mutableStateOf<GithubRelease?>(null) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableFloatStateOf(0f) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -127,10 +142,47 @@ fun AboutScreen(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Instagram: @krishsreva444",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Instagram: @krishsreva444",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            textDecoration = TextDecoration.Underline
+                        ),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                uriHandler.openUri("https://instagram.com/krishsreva444")
+                            }
+                            .padding(4.dp)
                     )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // Check for Updates Button
+                    OutlinedButton(
+                        onClick = {
+                            isCheckingUpdate = true
+                            scope.launch {
+                                val release = UpdateManager.checkForUpdate()
+                                isCheckingUpdate = false
+                                if (release != null) {
+                                    availableUpdate = release
+                                    showUpdateDialog = true
+                                } else {
+                                    snackbarHostState.showSnackbar("You are already on the latest version!")
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isCheckingUpdate) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Rounded.SystemUpdate, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Check for Updates")
+                        }
+                    }
                 }
             }
 
@@ -267,6 +319,64 @@ fun AboutScreen(
             Spacer(Modifier.height(32.dp))
         }
     }
+
+    // Update Available Dialog
+    if (showUpdateDialog && availableUpdate != null) {
+        val release = availableUpdate!!
+        AlertDialog(
+            onDismissRequest = { if (!isDownloading) showUpdateDialog = false },
+            title = { Text("New Version Available (${release.tagName})", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(release.releaseNotes ?: "A new update is available with bug fixes and improvements.")
+                    if (isDownloading) {
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { downloadProgress },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text("Downloading update... ${(downloadProgress * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val apkAsset = release.assets.find { it.name.endsWith(".apk", ignoreCase = true) } 
+                            ?: release.assets.firstOrNull()
+                        
+                        if (apkAsset != null) {
+                            isDownloading = true
+                            scope.launch {
+                                val installed = UpdateManager.downloadAndInstallApk(context, apkAsset.downloadUrl) { progress ->
+                                    downloadProgress = progress
+                                }
+                                isDownloading = false
+                                if (installed) {
+                                    showUpdateDialog = false
+                                } else {
+                                    snackbarHostState.showSnackbar("Download failed. Please try again.")
+                                }
+                            }
+                        } else {
+                            scope.launch { snackbarHostState.showSnackbar("No APK asset found in release.") }
+                        }
+                    },
+                    enabled = !isDownloading
+                ) {
+                    Text(if (isDownloading) "Downloading..." else "Download & Install")
+                }
+            },
+            dismissButton = {
+                if (!isDownloading) {
+                    TextButton(onClick = { showUpdateDialog = false }) {
+                        Text("Later")
+                    }
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
 }
 
 suspend fun sendFeedbackToGoogleScript(type: String, name: String, email: String, message: String): Boolean = withContext(Dispatchers.IO) {
@@ -294,7 +404,6 @@ suspend fun sendFeedbackToGoogleScript(type: String, name: String, email: String
             .build()
 
         client.newCall(request).execute().use { response ->
-            Log.d("GoogleScript", "Feedback response code: ${response.code}")
             response.isSuccessful || response.code == 302 || response.code == 200
         }
     }.getOrDefault(false)

@@ -49,7 +49,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val customLogoUri = settingsManager.customLogoUriFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val shakeToLock = settingsManager.shakeToLockFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val screenshotProtection = settingsManager.screenshotProtectionFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
-    val showWarningScreen = settingsManager.showWarningScreenFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val showWarningScreen = settingsManager.showWarningScreenFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val useBiometric = settingsManager.useBiometricFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val biometricFileAccess = settingsManager.biometricFileAccessFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val activeAlias = settingsManager.activeAliasFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "com.krish.systemsync.LauncherDefault")

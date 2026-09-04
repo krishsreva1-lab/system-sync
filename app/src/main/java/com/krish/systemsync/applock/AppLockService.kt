@@ -1,6 +1,6 @@
 package com.krish.systemsync.applock
 
-import android.app.*
+import android.app.Service
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
@@ -34,21 +34,35 @@ class AppLockService : Service() {
         return START_STICKY
     }
 
+    private var lastLaunchedPackage: String? = null
+    private var lastLaunchTime: Long = 0
+
     private fun startMonitoring() {
         serviceScope.launch {
             while (isActive) {
                 val foregroundApp = getForegroundApp()
+                val currentTime = System.currentTimeMillis()
+                
                 if (foregroundApp != null && foregroundApp != packageName) {
                     val lockedApps = appLockRepository.lockedApps.first()
                     if (lockedApps.contains(foregroundApp)) {
-                        val intent = Intent(this@AppLockService, MainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            putExtra("LOCK_APP_PACKAGE", foregroundApp)
+                        // Prevent continuous restart loops by checking if this app was just launched
+                        if (foregroundApp != lastLaunchedPackage || (currentTime - lastLaunchTime > 3000)) {
+                            lastLaunchedPackage = foregroundApp
+                            lastLaunchTime = currentTime
+                            
+                            val intent = Intent(this@AppLockService, MainActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                putExtra("LOCK_APP_PACKAGE", foregroundApp)
+                            }
+                            startActivity(intent)
                         }
-                        startActivity(intent)
                     }
+                } else if (foregroundApp == packageName) {
+                    lastLaunchedPackage = null
                 }
-                delay(200)
+                
+                delay(500)
             }
         }
     }

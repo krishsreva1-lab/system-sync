@@ -1,10 +1,13 @@
 package com.krish.systemsync.ui.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,7 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.krish.systemsync.settings.GithubRelease
+import com.krish.systemsync.settings.UpdateCheckResult
 import com.krish.systemsync.settings.UpdateManager
 import kotlinx.coroutines.launch
 
@@ -26,15 +29,19 @@ fun UpdateScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(true) }
-    var release by remember { mutableStateOf<GithubRelease?>(null) }
+    var result by remember { mutableStateOf<UpdateCheckResult?>(null) }
     var isDownloading by remember { mutableStateOf(false) }
     var downloadProgress by remember { mutableFloatStateOf(0f) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) {
+    suspend fun runCheck() {
         isLoading = true
-        release = UpdateManager.checkForUpdate(context)
+        result = UpdateManager.checkForUpdate(context)
         isLoading = false
+    }
+
+    LaunchedEffect(Unit) {
+        runCheck()
     }
 
     Scaffold(
@@ -59,23 +66,75 @@ fun UpdateScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.TopCenter
         ) {
             when {
                 isLoading -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.height(16.dp))
-                        Text("Checking for updates...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(top = 100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.height(16.dp))
+                            Text("Checking for updates...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
-                release == null -> {
-                    // Up to date - show in the exact center of the screen
+
+                result is UpdateCheckResult.Error -> {
+                    val message = (result as UpdateCheckResult.Error).message
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().padding(top = 40.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(32.dp),
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            modifier = Modifier.size(80.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Rounded.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(24.dp))
+                        Text(
+                            text = "Couldn't check for updates",
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(20.dp))
+                        Button(
+                            onClick = { scope.launch { runCheck() } },
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+
+                result is UpdateCheckResult.UpToDate || result == null -> {
+                    // Up to date - show in the center of the screen
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 60.dp)
                     ) {
                         Surface(
                             shape = RoundedCornerShape(32.dp),
@@ -107,8 +166,10 @@ fun UpdateScreen(
                         )
                     }
                 }
+
                 else -> {
                     // Update available
+                    val release = (result as UpdateCheckResult.UpdateAvailable).release
                     Surface(
                         shape = RoundedCornerShape(28.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -131,7 +192,7 @@ fun UpdateScreen(
                                 Spacer(Modifier.width(16.dp))
                                 Column {
                                     Text(
-                                        text = "New Version Available (${release!!.tagName})",
+                                        text = "New Version Available (${release.tagName})",
                                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                     )
                                     Text(
@@ -149,7 +210,7 @@ fun UpdateScreen(
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = release!!.releaseNotes ?: "Performance improvements and bug fixes.",
+                                text = release.releaseNotes ?: "Performance improvements and bug fixes.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                             )
@@ -184,8 +245,8 @@ fun UpdateScreen(
 
                                 Button(
                                     onClick = {
-                                        val apkAsset = release!!.assets.find { it.name.endsWith(".apk", ignoreCase = true) }
-                                            ?: release!!.assets.firstOrNull()
+                                        val apkAsset = release.assets.find { it.name.endsWith(".apk", ignoreCase = true) }
+                                            ?: release.assets.firstOrNull()
 
                                         if (apkAsset != null) {
                                             isDownloading = true

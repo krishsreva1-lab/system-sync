@@ -24,6 +24,14 @@ data class GithubAsset(
     @SerializedName("name") val name: String
 )
 
+// NEW: distinguishes "no update" from "check failed" so a failed check
+// can never be shown to the user as "up to date".
+sealed class UpdateCheckResult {
+    data class UpdateAvailable(val release: GithubRelease) : UpdateCheckResult()
+    object UpToDate : UpdateCheckResult()
+    data class Error(val message: String) : UpdateCheckResult()
+}
+
 object UpdateManager {
     private const val GITHUB_API_URL = "https://api.github.com/repos/krishsreva1-lab/system-sync/releases/latest"
 
@@ -39,7 +47,7 @@ object UpdateManager {
     private fun isVersionGreater(remote: String, local: String): Boolean {
         val rParts = remote.removePrefix("v").trim().split(".").map { it.toIntOrNull() ?: 0 }
         val lParts = local.removePrefix("v").trim().split(".").map { it.toIntOrNull() ?: 0 }
-        
+
         val maxLen = maxOf(rParts.size, lParts.size)
         for (i in 0 until maxLen) {
             val r = rParts.getOrNull(i) ?: 0
@@ -50,8 +58,8 @@ object UpdateManager {
         return false
     }
 
-    suspend fun checkForUpdate(context: Context): GithubRelease? = withContext(Dispatchers.IO) {
-        runCatching {
+    suspend fun checkForUpdate(context: Context): UpdateCheckResult = withContext(Dispatchers.IO) {
+        try {
             val client = OkHttpClient()
             val request = Request.Builder()
                 .url(GITHUB_API_URL)
@@ -61,33 +69,44 @@ object UpdateManager {
 
             client.newCall(request).execute().use { response ->
                 Log.d("UpdateManager", "GitHub API response code: ${response.code}")
+
                 if (!response.isSuccessful) {
-                    Log.e("UpdateManager", "GitHub API failed with code: ${response.code}")
-                    return@runCatching null
+                    val reason = if (response.code == 403 || response.code == 429) {
+                        "GitHub API rate limit hit (code ${response.code})"
+                    } else {
+                        "GitHub API failed (code ${response.code})"
+                    }
+                    Log.e("UpdateManager", reason)
+                    return@withContext UpdateCheckResult.Error(reason)
                 }
-                val bodyString = response.body?.string() ?: return@runCatching null
+
+                val bodyString = response.body?.string()
+                    ?: return@withContext UpdateCheckResult.Error("Empty response body")
                 Log.d("UpdateManager", "GitHub API body: $bodyString")
+
                 val release = Gson().fromJson(bodyString, GithubRelease::class.java)
-                
                 val remoteVersion = release.tagName
                 val localVersion = getCurrentVersion(context)
 
                 Log.d("UpdateManager", "Remote version: $remoteVersion, Local version: $localVersion")
 
                 if (isVersionGreater(remoteVersion, localVersion)) {
-                    release
+                    UpdateCheckResult.UpdateAvailable(release)
                 } else {
-                    null
+                    UpdateCheckResult.UpToDate
                 }
             }
-        }.getOrNull()
+        } catch (e: Exception) {
+            Log.e("UpdateManager", "Update check threw: ${e.message}", e)
+            UpdateCheckResult.Error(e.message ?: "Unknown error while checking for updates")
+        }
     }
 
     suspend fun downloadAndInstallApk(context: Context, downloadUrl: String, onProgress: (Float) -> Unit): Boolean = withContext(Dispatchers.IO) {
         runCatching {
             val client = OkHttpClient()
             val request = Request.Builder().url(downloadUrl).build()
-            
+
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext false
                 val body = response.body ?: return@withContext false

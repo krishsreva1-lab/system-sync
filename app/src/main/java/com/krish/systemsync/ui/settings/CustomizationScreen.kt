@@ -55,6 +55,7 @@ fun CustomizationScreen(
     onChangeDummyPassword: () -> Unit,
     onViewLogs: () -> Unit,
     onNavigateToAboutUs: () -> Unit,
+    onNavigateToUpdateCheck: () -> Unit,
     onBack: () -> Unit
 ) {
     var hasSaved by remember { mutableStateOf(false) }
@@ -153,16 +154,27 @@ fun CustomizationScreen(
                 onChangeDummyPassword = onChangeDummyPassword
             )
 
-            SectionTitle("System Logs")
-            Button(
-                onClick = onViewLogs,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-            ) {
-                Icon(Icons.Rounded.History, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("View Security Logs")
+            SectionTitle("System Logs & Updates")
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onViewLogs,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Icon(Icons.Rounded.History, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("View Security Logs")
+                }
+                OutlinedButton(
+                    onClick = onNavigateToUpdateCheck,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Rounded.SystemUpdate, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Check for Updates")
+                }
             }
 
             // Legal & About Section at the Very Bottom
@@ -562,6 +574,7 @@ fun CustomizationPreview() {
             onChangeDummyPassword = {},
             onViewLogs = {},
             onNavigateToAboutUs = {},
+            onNavigateToUpdateCheck = {},
             onBack = {}
         )
     }

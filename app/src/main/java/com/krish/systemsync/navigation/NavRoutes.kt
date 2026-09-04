@@ -52,3 +52,6 @@ object Warning : Screen
 
 @Serializable
 object AboutUs : Screen
+
+@Serializable
+object UpdateCheck : Screen

@@ -40,6 +40,7 @@ import com.krish.systemsync.ui.login.TerminalLoginScreen
 import com.krish.systemsync.ui.player.PlayerScreen
 import com.krish.systemsync.ui.settings.CustomizationScreen
 import com.krish.systemsync.ui.settings.AboutScreen
+import com.krish.systemsync.ui.settings.UpdateScreen
 import com.krish.systemsync.ui.settings.LogsScreen
 import com.krish.systemsync.ui.setup.*
 import com.krish.systemsync.ui.terminal.TerminalScreen
@@ -335,11 +336,17 @@ class MainActivity : FragmentActivity() {
                                             onChangeDummyPassword = { backStack.add(DummyPasswordSetup) },
                                             onViewLogs = { backStack.add(Logs) },
                                             onNavigateToAboutUs = { backStack.add(AboutUs) },
+                                            onNavigateToUpdateCheck = { backStack.add(UpdateCheck) },
                                             onBack = { backStack.removeAt(backStack.size - 1) }
                                         )
                                     }
                                     is AboutUs -> NavEntry(key) {
                                         AboutScreen(
+                                            onBack = { backStack.removeAt(backStack.size - 1) }
+                                        )
+                                    }
+                                    is UpdateCheck -> NavEntry(key) {
+                                        UpdateScreen(
                                             onBack = { backStack.removeAt(backStack.size - 1) }
                                         )
                                     }
